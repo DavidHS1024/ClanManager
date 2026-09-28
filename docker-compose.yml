@@ -1,0 +1,23 @@
+# Base de datos para desarrollo local. En producción se usará la base
+# administrada de Railway, no este contenedor.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clanmanager_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clanmanager
+      POSTGRES_PASSWORD: clanmanager
+      POSTGRES_DB: clanmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - clanmanager_datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clanmanager -d clanmanager"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  clanmanager_datos:

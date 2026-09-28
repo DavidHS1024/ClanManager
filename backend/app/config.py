@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # Segundos máximos de espera por la respuesta de la API.
     coc_timeout: float = 10.0
 
+    # URL de conexión a PostgreSQL, con el formato
+    # dialecto+controlador://usuario:clave@host:puerto/basedatos
+    database_url: str
+
 
 # Instancia única que el resto de la aplicación importa.
 settings = Settings()
