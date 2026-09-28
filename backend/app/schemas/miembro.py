@@ -1,11 +1,15 @@
 """Esquemas de datos de los miembros del clan."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MiembroOut(BaseModel):
     """Miembro del clan tal como lo devuelve nuestra API al frontend."""
 
+    # Permite construir el esquema a partir de objetos de la base de datos,
+    # además de a partir de diccionarios.
+    model_config = ConfigDict(from_attributes=True)
+    
     tag: str
     nombre: str
     rol: str
