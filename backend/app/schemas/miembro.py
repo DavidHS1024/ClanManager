@@ -14,7 +14,8 @@ class MiembroOut(BaseModel):
     trofeos: int
     donaciones: int
     donaciones_recibidas: int
-    # Puede faltar si el jugador aún no tiene liga asignada.
+    # Liga actual del sistema de batallas clasificatorias.
+    # Puede faltar si el jugador no tiene liga asignada.
     liga: str | None = None
 
     @classmethod
@@ -22,8 +23,7 @@ class MiembroOut(BaseModel):
         """
         Construye un miembro a partir del diccionario crudo de Supercell.
 
-        Este es el único lugar que conoce los nombres de campo de la API
-        externa. Si Supercell los cambia, solo hay que corregir aquí.
+        Esta clase es el único lugar que conoce los nombres de campo de la API externa.
         """
         return cls(
             tag=datos["tag"],
@@ -34,5 +34,10 @@ class MiembroOut(BaseModel):
             trofeos=datos["trophies"],
             donaciones=datos["donations"],
             donaciones_recibidas=datos["donationsReceived"],
-            liga=(datos.get("league") or {}).get("name"),
+            liga=(datos.get("leagueTier") or {}).get("name"),
         )
+
+    @classmethod
+    def lista_desde_clan(cls, clan: dict) -> list["MiembroOut"]:
+        """Construye la lista de miembros a partir del detalle completo del clan."""
+        return [cls.desde_api(miembro) for miembro in clan["memberList"]]

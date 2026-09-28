@@ -10,7 +10,7 @@ async def main() -> None:
 
     try:
         clan = await cliente.obtener_clan()
-        miembros = await cliente.obtener_miembros()
+        miembros = clan["memberList"]
     except ClashApiError as error:
         print(f"Error ({error.status_code}): {error}")
         return

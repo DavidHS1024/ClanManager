@@ -14,5 +14,5 @@ router = APIRouter(prefix="/miembros", tags=["miembros"])
 async def listar_miembros() -> list[MiembroOut]:
     """Devuelve la lista actual de miembros, consultada en vivo a Supercell."""
     cliente = ClashClient()
-    datos = await cliente.obtener_miembros()
-    return [MiembroOut.desde_api(miembro) for miembro in datos]
+    clan = await cliente.obtener_clan()
+    return MiembroOut.lista_desde_clan(clan)

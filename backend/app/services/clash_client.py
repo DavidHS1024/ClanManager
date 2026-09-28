@@ -56,10 +56,11 @@ class ClashClient:
         return respuesta.json()
 
     async def obtener_clan(self) -> dict:
-        """Datos generales del clan: nombre, nivel, cantidad de miembros, etc."""
-        return await self._get(f"/clans/{quote(self._clan_tag)}")
+        """
+        Detalle completo del clan: datos generales y lista de miembros.
 
-    async def obtener_miembros(self) -> list[dict]:
-        """Lista de miembros actuales del clan."""
-        datos = await self._get(f"/clans/{quote(self._clan_tag)}/members")
-        return datos["items"]
+        Una sola llamada trae tanto las estadísticas del clan como
+        memberList, con la liga actual de cada miembro, de modo que todo
+        proviene del mismo instante.
+        """
+        return await self._get(f"/clans/{quote(self._clan_tag)}")
