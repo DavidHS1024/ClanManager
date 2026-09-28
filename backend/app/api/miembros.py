@@ -3,16 +3,14 @@
 from fastapi import APIRouter
 
 from app.schemas.miembro import MiembroOut
-from app.services.clash_client import ClashClient
+from app.api.dependencias import ClienteClash
 
 # Todas las rutas de este archivo comparten el prefijo /miembros y se
 # agrupan bajo la etiqueta "miembros" en la documentación automática.
 router = APIRouter(prefix="/miembros", tags=["miembros"])
 
-
 @router.get("")
-async def listar_miembros() -> list[MiembroOut]:
+async def listar_miembros(cliente: ClienteClash) -> list[MiembroOut]:
     """Devuelve la lista actual de miembros, consultada en vivo a Supercell."""
-    cliente = ClashClient()
     clan = await cliente.obtener_clan()
     return MiembroOut.lista_desde_clan(clan)

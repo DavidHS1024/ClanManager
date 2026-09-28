@@ -25,13 +25,30 @@ def normalizar_tag(tag: str) -> str:
     tag = tag.strip().upper()
     return tag if tag.startswith("#") else f"#{tag}"
 
+def crear_cliente_http() -> httpx.AsyncClient:
+    """
+    Crea el cliente HTTP compartido para hablar con la API de Clash of Clans.
+
+    Queda configurado una sola vez con la URL base, el token y el tiempo de
+    espera. Debe cerrarse al terminar, por eso se usa con `async with`.
+    """
+    return httpx.AsyncClient(
+        base_url=settings.coc_base_url,
+        headers={"Authorization": f"Bearer {settings.coc_token}"},
+        timeout=settings.coc_timeout,
+    )
 
 class ClashClient:
     """Cliente para consultar la API de Clash of Clans a través del proxy."""
 
-    def __init__(self) -> None:
+    def __init__(self, http: httpx.AsyncClient) -> None:
+        """
+        Argumentos:
+            http: cliente HTTP compartido, ya configurado con la URL base,
+                el token y el tiempo de espera. Ver crear_cliente_http.
+        """
+        self._http = http
         self._clan_tag = normalizar_tag(settings.clan_tag)
-        self._encabezados = {"Authorization": f"Bearer {settings.coc_token}"}
 
     async def _get(self, ruta: str) -> dict:
         """
@@ -39,11 +56,8 @@ class ClashClient:
 
         Lanza ClashApiError si no hay conexión o si la API responde con error.
         """
-        url = f"{settings.coc_base_url}{ruta}"
-
         try:
-            async with httpx.AsyncClient(timeout=settings.coc_timeout) as cliente:
-                respuesta = await cliente.get(url, headers=self._encabezados)
+            respuesta = await self._http.get(ruta)
         except httpx.RequestError as error:
             raise ClashApiError(f"No se pudo conectar con la API: {error}") from error
 
