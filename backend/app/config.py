@@ -37,7 +37,12 @@ class Settings(BaseSettings):
 
     # Minutos entre cada sondeo de la guerra actual. Más corto que el de
     # miembros porque durante una guerra conviene notar los ataques pronto.
-    guerra_intervalo_minutos: int = 1
+    guerra_intervalo_minutos: int = 10
+
+    # Minutos de margen después de que termina la guerra antes de hacer la
+    # captura final garantizada, para dar tiempo a que Supercell termine de
+    # asentar los ataques de último minuto antes de consultarlos.
+    guerra_captura_final_demora_minutos: int = 2
 
 
 # Instancia única que el resto de la aplicación importa.

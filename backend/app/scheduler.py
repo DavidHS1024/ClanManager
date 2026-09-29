@@ -1,12 +1,15 @@
 """Programador de capturas automáticas del clan."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.config import settings
 from app.db.sesion import FabricaSesion
+from app.models.guerra import Guerra
 from app.services import capturas as servicio_capturas
 from app.services import guerras as servicio_guerras
 from app.services.clash_client import ClashApiError, ClashClient
@@ -36,14 +39,31 @@ async def capturar_periodicamente(cliente: ClashClient) -> None:
     )
 
 
-async def capturar_guerra_periodicamente(cliente: ClashClient) -> None:
+async def capturar_guerra_periodicamente(cliente: ClashClient, programador: AsyncIOScheduler) -> None:
     """
-    Tarea programada: guarda o actualiza el registro de la guerra actual.
+    Tarea programada: decide si vale la pena sondear la guerra actual ahora
+    mismo, y si es así, la guarda o actualiza.
 
-    Si el clan no está en guerra, guardar_guerra_actual devuelve None y
-    no hay nada que registrar; no es un error, así que solo se anota en
-    el nivel debug para no llenar el log de líneas sin información.
+    Si ya sabemos, por una captura anterior, que la guerra actual todavía
+    está en su día de preparación, no se hace ninguna llamada a la API:
+    nada relevante cambia durante la preparación, así que sondear en ese
+    tramo solo gastaría peticiones contra el proxy comunitario sin
+    aportar nada nuevo. En cualquier otro caso, incluido no saber nada
+    todavía, sí se sondea.
     """
+    ahora = datetime.now(timezone.utc)
+
+    async with FabricaSesion() as sesion:
+        ultima = await servicio_guerras.ultima_guerra_conocida(sesion)
+
+    if ultima is not None and ultima.inicio is not None:
+        if ultima.preparacion_inicio <= ahora < ultima.inicio:
+            logger.debug(
+                "Guerra %s todavía en preparación, se pospone el sondeo hasta el día de batalla",
+                ultima.id,
+            )
+            return
+
     async with FabricaSesion() as sesion:
         try:
             guerra = await servicio_guerras.guardar_guerra_actual(sesion, cliente)
@@ -59,6 +79,61 @@ async def capturar_guerra_periodicamente(cliente: ClashClient) -> None:
         "Guerra actualizada: id=%s estado=%s rival=%s estrellas=%s/%s",
         guerra.id, guerra.estado, guerra.rival_nombre, guerra.clan_estrellas, guerra.rival_estrellas,
     )
+
+    _programar_captura_final(programador, cliente, guerra)
+
+
+def _programar_captura_final(programador: AsyncIOScheduler, cliente: ClashClient, guerra: Guerra) -> None:
+    """
+    Agrega, si hace falta, una captura única justo después del fin de la
+    guerra, para no perder ataques de último minuto.
+
+    id_job se deriva de la fecha de preparación de la guerra, así que
+    programarla de nuevo en un sondeo posterior, mientras la guerra siga
+    siendo la misma, actualiza la misma tarea en vez de duplicarla.
+    """
+    if guerra.fin is None:
+        return
+
+    disparo = guerra.fin + timedelta(minutes=settings.guerra_captura_final_demora_minutos)
+
+    if disparo <= datetime.now(timezone.utc):
+        # El momento previsto ya pasó. Si la captura final todavía no se
+        # disparó por alguna razón, volver a programarla aquí la haría
+        # correr de inmediato, y si ya se disparó, no hay nada que hacer.
+        return
+
+    id_job = f"captura_guerra_final_{guerra.preparacion_inicio.timestamp():.0f}"
+
+    programador.add_job(
+        capturar_guerra_una_vez,
+        trigger=DateTrigger(run_date=disparo),
+        args=[cliente],
+        id=id_job,
+        replace_existing=True,
+    )
+    logger.info("Captura final de la guerra %s programada para %s", guerra.id, disparo)
+
+
+async def capturar_guerra_una_vez(cliente: ClashClient) -> None:
+    """
+    Captura de guerra sin la lógica de ahorro de capturar_guerra_periodicamente.
+
+    La usa la captura final garantizada, que debe ejecutarse sí o sí en el
+    momento programado, sin evaluar si "vale la pena".
+    """
+    async with FabricaSesion() as sesion:
+        try:
+            guerra = await servicio_guerras.guardar_guerra_actual(sesion, cliente)
+        except ClashApiError as error:
+            logger.error("Falló la captura final de guerra: %s", error)
+            return
+
+    if guerra is not None:
+        logger.info(
+            "Captura final de guerra registrada: id=%s estado=%s estrellas=%s/%s",
+            guerra.id, guerra.estado, guerra.clan_estrellas, guerra.rival_estrellas,
+        )
 
 
 def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
@@ -79,7 +154,7 @@ def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
     programador.add_job(
         capturar_guerra_periodicamente,
         trigger=IntervalTrigger(minutes=settings.guerra_intervalo_minutos),
-        args=[cliente],
+        args=[cliente, programador],
         id="captura_guerra_periodica",
         coalesce=True,
         max_instances=1,

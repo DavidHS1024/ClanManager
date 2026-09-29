@@ -1,9 +1,11 @@
 """Endpoints relacionados con las guerras de clanes."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from app.api.dependencias import ClienteClash
+from app.api.dependencias import ClienteClash, SesionBD
 from app.schemas.guerra import GuerraActualOut, GuerraRegistroOut
+from app.schemas.guerra_guardada import GuerraDetalleOut, GuerraResumenOut
+from app.services import guerras as servicio_guerras
 
 router = APIRouter(prefix="/guerras", tags=["guerras"])
 
@@ -32,3 +34,20 @@ async def registro_guerras(
     """
     datos = await cliente.obtener_registro_guerras(limite)
     return GuerraRegistroOut.lista_desde_api(datos)
+
+@router.get("/historial")
+async def listar_guerras(
+    sesion: SesionBD, limite: int = Query(default=20, ge=1, le=200)
+) -> list[GuerraResumenOut]:
+    """Devuelve las guerras guardadas por nuestro propio programador, de la más reciente a la más antigua."""
+    guerras = await servicio_guerras.listar_guerras(sesion, limite)
+    return [GuerraResumenOut.model_validate(g) for g in guerras]
+
+
+@router.get("/historial/{guerra_id}")
+async def obtener_guerra(guerra_id: int, sesion: SesionBD) -> GuerraDetalleOut:
+    """Devuelve el detalle de una guerra guardada, con sus miembros y ataques."""
+    guerra = await servicio_guerras.obtener_guerra(sesion, guerra_id)
+    if guerra is None:
+        raise HTTPException(status_code=404, detail="Guerra no encontrada")
+    return GuerraDetalleOut.model_validate(guerra)

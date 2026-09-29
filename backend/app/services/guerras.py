@@ -106,3 +106,27 @@ def _agregar_miembros_y_ataques(guerra: Guerra, bando: BandoGuerraOut, *, es_pro
                     duracion_segundos=ataque.duracion_segundos,
                 )
             )
+
+async def listar_guerras(sesion: AsyncSession, limite: int) -> list[Guerra]:
+    """Devuelve las guerras guardadas, de la más reciente a la más antigua."""
+    resultado = await sesion.execute(
+        select(Guerra).order_by(Guerra.preparacion_inicio.desc()).limit(limite)
+    )
+    return list(resultado.scalars().all())
+
+
+async def obtener_guerra(sesion: AsyncSession, guerra_id: int) -> Guerra | None:
+    """Devuelve una guerra guardada por id, con sus miembros y ataques cargados."""
+    resultado = await sesion.execute(
+        select(Guerra)
+        .where(Guerra.id == guerra_id)
+        .options(selectinload(Guerra.miembros), selectinload(Guerra.ataques))
+    )
+    return resultado.scalar_one_or_none()
+
+async def ultima_guerra_conocida(sesion: AsyncSession) -> Guerra | None:
+    """Devuelve la guerra más reciente que tenemos registrada, o None si no hay ninguna."""
+    resultado = await sesion.execute(
+        select(Guerra).order_by(Guerra.preparacion_inicio.desc()).limit(1)
+    )
+    return resultado.scalar_one_or_none()
