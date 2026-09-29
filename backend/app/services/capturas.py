@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.captura import Captura, CapturaMiembro
 from app.schemas.miembro import MiembroOut
-from app.services.clash_client import ClashClient
+from app.services.clash_client import ClashClient, normalizar_tag
 
 
 async def crear_captura(sesion: AsyncSession, cliente: ClashClient) -> Captura:
@@ -45,3 +45,18 @@ async def obtener_captura(sesion: AsyncSession, captura_id: int) -> Captura | No
         .options(selectinload(Captura.miembros))
     )
     return resultado.scalar_one_or_none()
+
+async def historial_miembro(sesion: AsyncSession, tag: str, limite: int) -> list[CapturaMiembro]:
+    """
+    Devuelve el historial de un miembro a través de las capturas guardadas,
+    de la más reciente a la más antigua.
+    """
+    resultado = await sesion.execute(
+        select(CapturaMiembro)
+        .join(Captura)
+        .where(CapturaMiembro.tag == normalizar_tag(tag))
+        .order_by(Captura.capturado_en.desc())
+        .limit(limite)
+        .options(selectinload(CapturaMiembro.captura))
+    )
+    return list(resultado.scalars().all())

@@ -58,4 +58,17 @@ class CapturaMiembro(Base):
     # Puede ser nulo si el jugador no tiene liga asignada.
     liga: Mapped[str | None] = mapped_column(String(50))
 
+    # Posición del miembro dentro del ranking interno del clan.
+    rango_clan: Mapped[int | None]
+    rango_clan_anterior: Mapped[int | None]
+    # Aldea de constructor: puede ser nula en cuentas muy antiguas o en
+    # capturas guardadas antes de que empezáramos a leer estos campos.
+    trofeos_base: Mapped[int | None]
+    liga_base: Mapped[str | None] = mapped_column(String(50))
+
     captura: Mapped["Captura"] = relationship(back_populates="miembros")
+
+    @property
+    def capturado_en(self) -> datetime:
+        """Fecha de la captura a la que pertenece este registro."""
+        return self.captura.capturado_en
