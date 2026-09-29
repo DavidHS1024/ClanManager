@@ -1,3 +1,6 @@
+"""Punto de entrada de la API de ClanManager."""
+
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -5,7 +8,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.api import capturas, miembros
+from app.scheduler import crear_programador
 from app.services.clash_client import ClashApiError, ClashClient, crear_cliente_http
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
 @asynccontextmanager
@@ -18,8 +24,15 @@ async def ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
     proxy y se guarda en app.state para que los endpoints accedan a ella.
     """
     async with crear_cliente_http() as http:
-        app.state.clash = ClashClient(http)
+        cliente = ClashClient(http)
+        app.state.clash = cliente
+
+        programador = crear_programador(cliente)
+        programador.start()
+
         yield
+
+        programador.shutdown()
     # Al salir del bloque `async with`, la conexión se cierra sola.
 
 

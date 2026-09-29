@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # dialecto+controlador://usuario:clave@host:puerto/basedatos
     database_url: str
 
+    # Minutos entre cada captura automática del clan.
+    captura_intervalo_minutos: int = 60
+
 
 # Instancia única que el resto de la aplicación importa.
 settings = Settings()
