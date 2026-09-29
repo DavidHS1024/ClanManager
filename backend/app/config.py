@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # Minutos entre cada captura automática del clan.
     captura_intervalo_minutos: int = 60
 
+    # Minutos entre cada sondeo de la guerra actual. Más corto que el de
+    # miembros porque durante una guerra conviene notar los ataques pronto.
+    guerra_intervalo_minutos: int = 1
+
 
 # Instancia única que el resto de la aplicación importa.
 settings = Settings()

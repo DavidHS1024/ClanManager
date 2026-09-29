@@ -8,6 +8,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.db.sesion import FabricaSesion
 from app.services import capturas as servicio_capturas
+from app.services import guerras as servicio_guerras
 from app.services.clash_client import ClashApiError, ClashClient
 
 logger = logging.getLogger("clanmanager.scheduler")
@@ -35,9 +36,34 @@ async def capturar_periodicamente(cliente: ClashClient) -> None:
     )
 
 
+async def capturar_guerra_periodicamente(cliente: ClashClient) -> None:
+    """
+    Tarea programada: guarda o actualiza el registro de la guerra actual.
+
+    Si el clan no está en guerra, guardar_guerra_actual devuelve None y
+    no hay nada que registrar; no es un error, así que solo se anota en
+    el nivel debug para no llenar el log de líneas sin información.
+    """
+    async with FabricaSesion() as sesion:
+        try:
+            guerra = await servicio_guerras.guardar_guerra_actual(sesion, cliente)
+        except ClashApiError as error:
+            logger.error("Falló el sondeo de guerra: %s", error)
+            return
+
+    if guerra is None:
+        logger.debug("Sondeo de guerra: el clan no está en guerra ahora mismo")
+        return
+
+    logger.info(
+        "Guerra actualizada: id=%s estado=%s rival=%s estrellas=%s/%s",
+        guerra.id, guerra.estado, guerra.rival_nombre, guerra.clan_estrellas, guerra.rival_estrellas,
+    )
+
+
 def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
     """
-    Crea el programador con la tarea de captura ya registrada.
+    Crea el programador con las tareas de captura ya registradas.
 
     No lo inicia: quien lo crea decide cuándo llamar a .start() y .shutdown().
     """
@@ -47,10 +73,15 @@ def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
         trigger=IntervalTrigger(minutes=settings.captura_intervalo_minutos),
         args=[cliente],
         id="captura_periodica",
-        # Si el servidor estuvo apagado y se pasó la hora, ejecuta una sola
-        # vez al reanudar en vez de encadenar varias capturas atrasadas.
         coalesce=True,
-        # Evita que una captura que tarda mucho se solape con la siguiente.
+        max_instances=1,
+    )
+    programador.add_job(
+        capturar_guerra_periodicamente,
+        trigger=IntervalTrigger(minutes=settings.guerra_intervalo_minutos),
+        args=[cliente],
+        id="captura_guerra_periodica",
+        coalesce=True,
         max_instances=1,
     )
     return programador
