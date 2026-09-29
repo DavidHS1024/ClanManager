@@ -50,14 +50,14 @@ class ClashClient:
         self._http = http
         self._clan_tag = normalizar_tag(settings.clan_tag)
 
-    async def _get(self, ruta: str) -> dict:
+    async def _get(self, ruta: str, params: dict | None = None) -> dict:
         """
         Hace una petición GET a la API y devuelve el JSON de la respuesta.
 
         Lanza ClashApiError si no hay conexión o si la API responde con error.
         """
         try:
-            respuesta = await self._http.get(ruta)
+            respuesta = await self._http.get(ruta, params=params)
         except httpx.RequestError as error:
             raise ClashApiError(f"No se pudo conectar con la API: {error}") from error
 
@@ -78,3 +78,25 @@ class ClashClient:
         proviene del mismo instante.
         """
         return await self._get(f"/clans/{quote(self._clan_tag)}")
+
+    async def obtener_guerra_actual(self) -> dict:
+        """
+        Guerra clásica en curso o más reciente.
+
+        Si el clan no está en guerra, la respuesta trae solo
+        {"state": "notInWar"}, sin más datos.
+        """
+        return await self._get(f"/clans/{quote(self._clan_tag)}/currentwar")
+
+    async def obtener_registro_guerras(self, limite: int = 10) -> list[dict]:
+        """
+        Historial resumido de guerras pasadas, según el registro público.
+
+        Solo funciona si el clan tiene su registro de guerra en público;
+        si está privado, Supercell responde 403 y eso se propaga como
+        ClashApiError, igual que cualquier otro error de la API.
+        """
+        datos = await self._get(
+            f"/clans/{quote(self._clan_tag)}/warlog", params={"limit": limite}
+        )
+        return datos.get("items", [])
