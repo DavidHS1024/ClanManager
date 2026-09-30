@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api import capturas, guerras, miembros
+from app.api import asaltos, capturas, guerras, miembros
 from app.scheduler import crear_programador
 from app.services.clash_client import ClashApiError, ClashClient, crear_cliente_http
 
@@ -46,6 +46,7 @@ app = FastAPI(
 app.include_router(miembros.router, prefix="/api")
 app.include_router(capturas.router, prefix="/api")
 app.include_router(guerras.router, prefix="/api")
+app.include_router(asaltos.router, prefix="/api")
 
 
 @app.exception_handler(ClashApiError)

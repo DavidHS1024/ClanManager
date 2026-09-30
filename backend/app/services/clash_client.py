@@ -118,3 +118,15 @@ class ClashClient:
         war tag en vez de pertenecer a un clan y horario únicos.
         """
         return await self._get(f"/clanwarleagues/wars/{quote(war_tag)}")
+
+    async def obtener_asaltos_capital(self, limite: int = 1) -> list[dict]:
+        """
+        Historial de fines de semana de asaltos a la Capital del Clan.
+
+        Por defecto trae solo el más reciente. Supercell no permite
+        filtrar por fecha, solo limitar cuántos entrega.
+        """
+        datos = await self._get(
+            f"/clans/{quote(self._clan_tag)}/capitalraidseasons", params={"limit": limite}
+        )
+        return datos.get("items", [])
