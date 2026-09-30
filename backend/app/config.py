@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # llamadas a la API en vez de una sola.
     liga_intervalo_minutos: int = 30
 
+    # Minutos entre cada sondeo del fin de semana de asaltos. No tiene la
+    # misma urgencia de último minuto que una guerra, así que un intervalo
+    # más relajado es suficiente.
+    asalto_intervalo_minutos: int = 60
+
 
 # Instancia única que el resto de la aplicación importa.
 settings = Settings()

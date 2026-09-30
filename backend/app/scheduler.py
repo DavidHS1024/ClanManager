@@ -10,6 +10,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.config import settings
 from app.db.sesion import FabricaSesion
 from app.models.guerra import Guerra
+from app.services import asaltos as servicio_asaltos
 from app.services import capturas as servicio_capturas
 from app.services import guerras as servicio_guerras
 from app.services.clash_client import ClashApiError, ClashClient
@@ -157,6 +158,30 @@ async def capturar_liga_una_vez(cliente: ClashClient) -> None:
             guerra.clan_estrellas, guerra.rival_estrellas,
         )
 
+async def capturar_asalto_periodicamente(cliente: ClashClient) -> None:
+    """
+    Tarea programada: guarda o actualiza el fin de semana de asaltos más
+    reciente.
+
+    Si todavía no hay ningún fin de semana registrado para este clan,
+    guardar_asalto_actual devuelve None y no hay nada que anotar.
+    """
+    async with FabricaSesion() as sesion:
+        try:
+            asalto = await servicio_asaltos.guardar_asalto_actual(sesion, cliente)
+        except ClashApiError as error:
+            logger.error("Falló el sondeo de asaltos: %s", error)
+            return
+
+    if asalto is None:
+        logger.debug("Sondeo de asaltos: todavía no hay ningún fin de semana registrado")
+        return
+
+    logger.info(
+        "Asalto actualizado: id=%s estado=%s oro_total=%s ataques=%s",
+        asalto.id, asalto.estado, asalto.oro_capital_total, asalto.ataques_totales,
+    )
+
 def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
     """
     Crea el programador con las tareas de captura ya registradas.
@@ -190,4 +215,13 @@ def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
         max_instances=1,
     )
 
+    programador.add_job(
+        capturar_asalto_periodicamente,
+        trigger=IntervalTrigger(minutes=settings.asalto_intervalo_minutos),
+        args=[cliente],
+        id="captura_asalto_periodica",
+        coalesce=True,
+        max_instances=1,
+    )
+    
     return programador
