@@ -53,7 +53,21 @@ class Settings(BaseSettings):
     # Minutos entre cada sondeo del fin de semana de asaltos. No tiene la
     # misma urgencia de último minuto que una guerra, así que un intervalo
     # más relajado es suficiente.
-    asalto_intervalo_minutos: int = 60
+    asalto_intervalo_minutos: int = 30
+
+    # Calendario semanal del Fin de Semana de Asaltos, en UTC. Los valores
+    # por defecto corresponden al horario oficial confirmado por Supercell
+    # y varias fuentes independientes: viernes 7:00 UTC a lunes 7:00 UTC.
+    # Los días siguen la convención de Python, donde lunes es 0 y domingo
+    # es 6. Ajustable por si observas un horario distinto en tu clan.
+    asalto_inicio_dia_semana: int = 4  # viernes
+    asalto_inicio_hora_utc: int = 7
+    asalto_fin_dia_semana: int = 0  # lunes
+    asalto_fin_hora_utc: int = 7
+
+    # Minutos de margen después del fin calculado de la ventana, para
+    # alcanzar a capturar los números ya asentados del último sondeo.
+    asalto_captura_final_demora_minutos: int = 15
 
 
 # Instancia única que el resto de la aplicación importa.

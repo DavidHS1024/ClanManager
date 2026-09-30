@@ -158,14 +158,51 @@ async def capturar_liga_una_vez(cliente: ClashClient) -> None:
             guerra.clan_estrellas, guerra.rival_estrellas,
         )
 
+def _inicio_ventana_mas_reciente(ahora: datetime) -> datetime:
+    """Calcula el inicio del Fin de Semana de Asaltos más reciente en o antes de 'ahora'."""
+    dias_desde_inicio = (ahora.weekday() - settings.asalto_inicio_dia_semana) % 7
+    candidato = datetime(
+        ahora.year, ahora.month, ahora.day, settings.asalto_inicio_hora_utc, 0, 0, tzinfo=timezone.utc
+    ) - timedelta(days=dias_desde_inicio)
+    if candidato > ahora:
+        candidato -= timedelta(days=7)
+    return candidato
+
+def _dentro_de_ventana_de_asaltos(ahora: datetime) -> bool:
+    """
+    Indica si 'ahora' cae dentro de la ventana semanal en la que puede
+    haber un Fin de Semana de Asaltos activo, con un margen extra al
+    final para alcanzar a capturar los números ya asentados.
+    """
+    inicio = _inicio_ventana_mas_reciente(ahora)
+
+    dias_duracion = (settings.asalto_fin_dia_semana - settings.asalto_inicio_dia_semana) % 7
+    horas_duracion = settings.asalto_fin_hora_utc - settings.asalto_inicio_hora_utc
+    duracion = timedelta(days=dias_duracion, hours=horas_duracion)
+    if duracion <= timedelta():
+        # Si fin e inicio calculan una duración de cero o negativa, es que
+        # el evento dura toda la semana hasta la próxima ocurrencia.
+        duracion += timedelta(days=7)
+
+    fin = inicio + duracion + timedelta(minutes=settings.asalto_captura_final_demora_minutos)
+    return inicio <= ahora < fin
+
 async def capturar_asalto_periodicamente(cliente: ClashClient) -> None:
     """
     Tarea programada: guarda o actualiza el fin de semana de asaltos más
-    reciente.
+    reciente, solo durante la ventana semanal en la que puede haber uno
+    activo.
 
-    Si todavía no hay ningún fin de semana registrado para este clan,
-    guardar_asalto_actual devuelve None y no hay nada que anotar.
+    Fuera de esa ventana, calculada según el calendario configurado, no
+    tiene sentido sondear: no va a haber datos nuevos hasta el próximo
+    viernes, así que hacerlo solo gastaría peticiones contra el proxy
+    comunitario sin aportar nada.
     """
+    ahora = datetime.now(timezone.utc)
+    if not _dentro_de_ventana_de_asaltos(ahora):
+        logger.debug("Fuera de la ventana del Fin de Semana de Asaltos, se pospone el sondeo")
+        return
+
     async with FabricaSesion() as sesion:
         try:
             asalto = await servicio_asaltos.guardar_asalto_actual(sesion, cliente)
