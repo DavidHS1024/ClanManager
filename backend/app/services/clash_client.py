@@ -100,3 +100,21 @@ class ClashClient:
             f"/clans/{quote(self._clan_tag)}/warlog", params={"limit": limite}
         )
         return datos.get("items", [])
+
+    async def obtener_grupo_liga_guerras(self) -> dict:
+        """
+        Grupo de la Liga de Guerras de Clanes (CWL) actual.
+
+        Si el clan no está participando en una CWL en este momento,
+        Supercell responde con un error, que se propaga como ClashApiError.
+        """
+        return await self._get(f"/clans/{quote(self._clan_tag)}/currentwar/leaguegroup")
+
+    async def obtener_guerra_liga(self, war_tag: str) -> dict:
+        """
+        Detalle de una guerra individual dentro de una ronda de CWL.
+
+        Tiene la misma forma que una guerra clásica, identificada por su
+        war tag en vez de pertenecer a un clan y horario únicos.
+        """
+        return await self._get(f"/clanwarleagues/wars/{quote(war_tag)}")

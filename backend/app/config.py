@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     # asentar los ataques de último minuto antes de consultarlos.
     guerra_captura_final_demora_minutos: int = 2
 
+    # Minutos entre cada sondeo de la Liga de Guerras de Clanes (CWL).
+    # Es más espaciado que el de guerra clásica porque, mientras haya
+    # rondas nuevas por resolver, cada sondeo puede implicar varias
+    # llamadas a la API en vez de una sola.
+    liga_intervalo_minutos: int = 30
+
 
 # Instancia única que el resto de la aplicación importa.
 settings = Settings()

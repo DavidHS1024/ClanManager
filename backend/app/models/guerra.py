@@ -31,6 +31,13 @@ class Guerra(Base):
     inicio: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     fin: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Presente solo en guerras de la Liga de Guerras de Clanes (CWL): es el
+    # identificador único que entrega Supercell para esa guerra puntual.
+    # NULL en guerras clásicas, donde no existe tal identificador.
+    war_tag: Mapped[str | None] = mapped_column(String(20), unique=True)
+    liga_temporada: Mapped[str | None] = mapped_column(String(10))
+    liga_ronda: Mapped[int | None]
+
     clan_tag: Mapped[str] = mapped_column(String(20))
     clan_nombre: Mapped[str] = mapped_column(String(50))
     clan_nivel: Mapped[int]

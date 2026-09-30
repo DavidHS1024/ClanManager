@@ -48,6 +48,11 @@ class GuerraResumenOut(BaseModel):
 
     id: int
     estado: str
+    # Presentes solo si es una guerra de la Liga de Guerras de Clanes (CWL);
+    # None en una guerra clásica.
+    war_tag: str | None
+    liga_temporada: str | None
+    liga_ronda: int | None
     rival_nombre: str
     clan_estrellas: int
     rival_estrellas: int

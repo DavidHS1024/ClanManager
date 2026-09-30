@@ -135,6 +135,27 @@ async def capturar_guerra_una_vez(cliente: ClashClient) -> None:
             guerra.id, guerra.estado, guerra.clan_estrellas, guerra.rival_estrellas,
         )
 
+async def capturar_liga_una_vez(cliente: ClashClient) -> None:
+    """
+    Tarea programada: sondea la Liga de Guerras de Clanes (CWL) actual.
+
+    Si el clan no está participando en una CWL ahora mismo, Supercell
+    responde con un error, que se trata igual que cualquier otro fallo de
+    la API: se registra y no detiene el resto de las tareas programadas.
+    """
+    async with FabricaSesion() as sesion:
+        try:
+            guardadas = await servicio_guerras.guardar_liga_actual(sesion, cliente)
+        except ClashApiError as error:
+            logger.debug("Sin Liga de Guerras de Clanes activa o falló el sondeo: %s", error)
+            return
+
+    for guerra in guardadas:
+        logger.info(
+            "Guerra de CWL actualizada: ronda=%s id=%s estado=%s rival=%s estrellas=%s/%s",
+            guerra.liga_ronda, guerra.id, guerra.estado, guerra.rival_nombre,
+            guerra.clan_estrellas, guerra.rival_estrellas,
+        )
 
 def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
     """
@@ -159,4 +180,14 @@ def crear_programador(cliente: ClashClient) -> AsyncIOScheduler:
         coalesce=True,
         max_instances=1,
     )
+
+    programador.add_job(
+        capturar_liga_una_vez,
+        trigger=IntervalTrigger(minutes=settings.liga_intervalo_minutos),
+        args=[cliente],
+        id="captura_liga_periodica",
+        coalesce=True,
+        max_instances=1,
+    )
+
     return programador
