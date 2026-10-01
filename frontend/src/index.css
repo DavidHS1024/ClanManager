@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/*
+ * Paleta temática de ClanManager.
+ *
+ * Cada módulo del juego tiene su propia combinación de colores, pensada
+ * para evocar la pantalla correspondiente dentro de Clash of Clans:
+ * guerra clásica como un mapa antiguo, la Liga de Guerras de Clanes como
+ * el campo de batalla verde de cada ronda, y el Fin de Semana de Asaltos
+ * como el cielo celeste de la Cima de la Capital. El resto de la
+ * aplicación, como el listado de miembros, usa una base neutra para no
+ * competir con esos tres acentos.
+ *
+ * @theme registra estos nombres como tokens de Tailwind, así que se usan
+ * como clases normales: bg-guerra-fondo, text-liga-texto, etc.
+ */
+@theme {
+  --font-display: "Baloo 2", "Segoe UI", system-ui, sans-serif;
+
+  /* Base neutra: dashboard, miembros, capturas. */
+  --color-base-fondo: #f4f1ea;
+  --color-base-panel: #ffffff;
+  --color-base-borde: #d9d3c4;
+  --color-base-texto: #2e2a22;
+  --color-base-acento: #2f6fb3;
+
+  /* Guerra clásica: mapa de guerra, pergamino envejecido. */
+  --color-guerra-fondo: #e7d3a1;
+  --color-guerra-panel: #f3e6c4;
+  --color-guerra-borde: #8b5e34;
+  --color-guerra-texto: #4a3420;
+  --color-guerra-acento: #b23b2e;
+
+  /* Liga de Guerras de Clanes: campo de batalla verde pasto. */
+  --color-liga-fondo: #4f9a3d;
+  --color-liga-panel: #6fbf4f;
+  --color-liga-borde: #2f6b24;
+  --color-liga-texto: #15310f;
+  --color-liga-acento: #f2c94c;
+
+  /* Fin de Semana de Asaltos: cielo de la Cima de la Capital. */
+  --color-asalto-fondo: #6fc6f0;
+  --color-asalto-panel: #9bdbf7;
+  --color-asalto-borde: #2b7fae;
+  --color-asalto-texto: #0d3a52;
+  --color-asalto-acento: #ffc94d;
+}
+
+body {
+  font-family: var(--font-display);
+  background-color: var(--color-base-fondo);
+  color: var(--color-base-texto);
+}
