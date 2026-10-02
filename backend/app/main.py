@@ -5,9 +5,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api import asaltos, capturas, guerras, miembros
+from app.config import settings
 from app.scheduler import crear_programador
 from app.services.clash_client import ClashApiError, ClashClient, crear_cliente_http
 
@@ -41,6 +43,13 @@ app = FastAPI(
     description="API para consultar y analizar la actividad de un clan de Clash of Clans.",
     version="0.1.0",
     lifespan=ciclo_de_vida,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.frontend_origins_lista,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(miembros.router, prefix="/api")

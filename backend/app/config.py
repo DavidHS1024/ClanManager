@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     # dialecto+controlador://usuario:clave@host:puerto/basedatos
     database_url: str
 
+    # Orígenes del frontend permitidos para llamar a esta API, separados
+    # por coma. En desarrollo es la URL que usa Vite por defecto.
+    frontend_origins: str = "http://localhost:5173"
+
+    @property
+    def frontend_origins_lista(self) -> list[str]:
+        """Convierte frontend_origins en una lista limpia de URLs."""
+        return [origen.strip() for origen in self.frontend_origins.split(",") if origen.strip()]
+
     # Minutos entre cada captura automática del clan.
     captura_intervalo_minutos: int = 60
 
